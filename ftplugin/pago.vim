@@ -1,8 +1,8 @@
 "
 " Pago
 " screenwriting for vim
-" Version:      0.2.22
-" Updated:      2008-11-24
+" Version:      0.2.17
+" Updated:      2008-11-22
 " Maintainer:   Mike Zazaian, mike@zop.io, http://zop.io
 " License:      This file is placed in the public domain.
 "
@@ -159,35 +159,26 @@ ino <Up> <C-R>=DirectionPressed("up")<CR><C-R>=ElementDetect()<CR><C-R>=CursorAd
 ino <Down> <C-R>=DirectionPressed("down")<CR><C-R>=ElementDetect()<CR><C-R>=CursorAdjust("down")<CR>
 ino <Left> <C-R>=DirectionPressed("left")<CR><C-R>=ElementDetect()<CR><C-R>=CursorAdjust("left")<CR>
 ino <Right> <C-R>=DirectionPressed("right")<CR><C-R>=ElementDetect()<CR><C-R>=CursorAdjust("right")<CR>
-ino <PageDown> <PageDown><C-R>=DirectionPressed("up")<CR><C-R>=ElementDetect()<CR><C-R>=CursorAdjust("up")<CR>
-ino <PageUp> <PageUp><C-R>=DirectionPressed("down")<CR><C-R>=ElementDetect()<CR><C-R>=CursorAdjust("down")<CR>
 
 no <Up> a<C-R>=DirectionPressed("up")<CR><C-R>=ElementDetect()<CR><C-R>=CursorAdjust("up")<CR><Esc>
 no <Down> a<C-R>=DirectionPressed("down")<CR><C-R>=ElementDetect()<CR><C-R>=CursorAdjust("down")<CR><Esc>
 no <Left> a<C-R>=DirectionPressed("left")<CR><C-R>=ElementDetect()<CR><C-R>=CursorAdjust("left")<CR><Esc>
 no <Right> a<C-R>=DirectionPressed("right")<CR><C-R>=ElementDetect()<CR><C-R>=CursorAdjust("right")<CR><Esc>
-no <PageDown> a<PageDown><C-R>=DirectionPressed("up")<CR><C-R>=ElementDetect()<CR><C-R>=CursorAdjust("up")<CR><Esc>
-no <PageUp> a<PageUp><C-R>=DirectionPressed("down")<CR><C-R>=ElementDetect()<CR><C-R>=CursorAdjust("down")<CR><Esc>
+
 
 ino <Space> <Space><C-R>=SceneStart()<CR><Esc>
 no <Space> <Space><C-R>=SceneStart()<CR><Esc>
 
+
 " Reformat paragraph with Ctrl-P in insert and normal mode
 imap <C-P> <C-R>=CtrlPPressed()<CR>
 map <C-P> i<C-R>=CtrlPPressed()<CR>
-
-" User-Defined Commands
-" :command -nargs=0 W "mz:w"
-" :command -nargs=0 WQ "mz:wq"
-" :command -nargs=0 WQQ "mz:wq!"
-
 
 " map ctrl-d to clean up all the whitespace so that ctrl-p work correctly
 "imap <C-D> !A!<Esc>:%s/^[ ]\{1,}$//g<CR>?!A!<CR>df!i
 
 set tw=70         " Set text width to 70
 set wrap          " Set columns to wrap at tw
-set ls=2          " Always show statusline
 set expandtab     " Change tabs into spaces
 set softtabstop=0 " softtabstop variable can break my custom backspacing
 set autoindent    " Set auto indent
@@ -232,21 +223,10 @@ fu! Format()
     let s:botline += 1
   endwhile
 
-  " return s:topline . "," . s:botline . "!fmt"
   return s:topline . "," . s:botline . "!fmt"
 endfu
-  
-fu! FormatParens()  
-  if g:current != "parenthetical"
-    let s:rtn = "gw}"
-  else
-    let s:rtn = ""
-  endif
 
-  return s:rtn
-endfu
-
-let g:autoformat = "\<Esc>:call\<Space>Format()\<CR>:call FormatParens()\<CR>a"
+let g:autoformat = "\<Esc>:call\<Space>Format()\<CR>a"
 " let g:autoformat = "\<Esc>gb}a"
 
 " Definition of Accepted Screenplay Characters
@@ -751,9 +731,14 @@ fu! Start()
   let g:current = "action"
 
   if line("$") == 1 && indent(".") == 0
-    call Element(g:action)
-   exe "normal :s/^/           /g\<CR>:\<BS>"
+    " call Element(g:action)
+    " let s:rtn = "i" . repeat(" ", 10)
+    let s:rtn = "I\<C-R>=BackspacePressed()\<CR>"
+  else
+    let s:rtn = ""
   endif
+
+  return s:rtn
 endfu
 
 "  let s:lastline = line(".")
