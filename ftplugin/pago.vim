@@ -1,8 +1,8 @@
 "
 " Pago
 " screenwriting for vim
-" Version:      0.2.17
-" Updated:      2008-11-22
+" Version:      0.2.29
+" Updated:      2009-1-5
 " Maintainer:   Mike Zazaian, mike@zop.io, http://zop.io
 " License:      This file is placed in the public domain.
 "
@@ -159,31 +159,43 @@ ino <Up> <C-R>=DirectionPressed("up")<CR><C-R>=ElementDetect()<CR><C-R>=CursorAd
 ino <Down> <C-R>=DirectionPressed("down")<CR><C-R>=ElementDetect()<CR><C-R>=CursorAdjust("down")<CR>
 ino <Left> <C-R>=DirectionPressed("left")<CR><C-R>=ElementDetect()<CR><C-R>=CursorAdjust("left")<CR>
 ino <Right> <C-R>=DirectionPressed("right")<CR><C-R>=ElementDetect()<CR><C-R>=CursorAdjust("right")<CR>
+ino <PageDown> <PageDown><C-R>=DirectionPressed("up")<CR><C-R>=ElementDetect()<CR><C-R>=CursorAdjust("up")<CR>
+ino <PageUp> <PageUp><C-R>=DirectionPressed("down")<CR><C-R>=ElementDetect()<CR><C-R>=CursorAdjust("down")<CR>
 
 no <Up> a<C-R>=DirectionPressed("up")<CR><C-R>=ElementDetect()<CR><C-R>=CursorAdjust("up")<CR><Esc>
 no <Down> a<C-R>=DirectionPressed("down")<CR><C-R>=ElementDetect()<CR><C-R>=CursorAdjust("down")<CR><Esc>
 no <Left> a<C-R>=DirectionPressed("left")<CR><C-R>=ElementDetect()<CR><C-R>=CursorAdjust("left")<CR><Esc>
 no <Right> a<C-R>=DirectionPressed("right")<CR><C-R>=ElementDetect()<CR><C-R>=CursorAdjust("right")<CR><Esc>
-
+no <PageDown> a<PageDown><C-R>=DirectionPressed("up")<CR><C-R>=ElementDetect()<CR><C-R>=CursorAdjust("up")<CR><Esc>
+no <PageUp> a<PageUp><C-R>=DirectionPressed("down")<CR><C-R>=ElementDetect()<CR><C-R>=CursorAdjust("down")<CR><Esc>
 
 ino <Space> <Space><C-R>=SceneStart()<CR><Esc>
 no <Space> <Space><C-R>=SceneStart()<CR><Esc>
-
 
 " Reformat paragraph with Ctrl-P in insert and normal mode
 imap <C-P> <C-R>=CtrlPPressed()<CR>
 map <C-P> i<C-R>=CtrlPPressed()<CR>
 
+" User-Defined Commands
+" :command -nargs=0 W "mz:w"
+" :command -nargs=0 WQ "mz:wq"
+" :command -nargs=0 WQQ "mz:wq!"
+
+
 " map ctrl-d to clean up all the whitespace so that ctrl-p work correctly
 "imap <C-D> !A!<Esc>:%s/^[ ]\{1,}$//g<CR>?!A!<CR>df!i
 
-set tw=70         " Set text width to 70
-set wrap          " Set columns to wrap at tw
-set expandtab     " Change tabs into spaces
-set softtabstop=0 " softtabstop variable can break my custom backspacing
-set autoindent    " Set auto indent
-set noshowmatch   " Turn off display of matching parenthesis if already on
-set ff=unix       " use unix fileformat
+setlocal tw=70         " Set text width to 70
+setlocal wrap          " Set columns to wrap at tw
+setlocal fo+=a2tw
+setlocal ls=2          " Always show statusline
+setlocal expandtab     " Change tabs into spaces
+setlocal softtabstop=0 " softtabstop variable can break my custom backspacing
+setlocal autoindent    " Set auto indent
+setlocal noshowmatch   " Turn off display of matching parenthesis if already on
+setlocal ff=unix       " use unix fileformat
+set ai                 " set autoindenting
+set si                 " set smartindenting
 
 fu! TransitionAdjust()
   if g:current == "transition"
@@ -210,8 +222,41 @@ endfor
 let g:alphaall = g:alphalower + g:alphaupper
 let g:otherkeys = ['<Space>','!','.','-','?',';']
 
+
+fu! ResetCursor(initline, initcol)
+  
+  exe "let thisends = g:" . g:current . ".ends"
+  exe "let thisbegins = g:" . g:current . ".begins"
+
+  call cursor(a:initline, a:initcol)
+
+  let s:endspace = search(" $","bnc") 
+  
+  if a:initcol >= thisends
+    if s:endspace == a:initline 
+      let s:newcol = thisbegins
+      let s:newline = a:initline + 1
+      let s:trail = "\<Space>\<Left>"
+    else
+      call cursor(a:initline, col("$"))
+      let s:lastspace = search(" ","bc",line("."))
+      let s:trail = "\<Del>\<CR>\<Right>"
+      let s:newline = line(".")
+      let s:newcol = col(".")
+    endif
+  else
+    let s:newline = a:initline
+    let s:newcol = a:initcol
+    let s:trail = ""
+  endif
+  
+  let s:rtn = ":call cursor(" . s:newline . "," . s:newcol . ")\<CR>" . s:trail
+endfu
+
+
 fu! Format()
   let s:initline = line(".")
+  let s:initcol = col(".")
   let s:topline = s:initline
   let s:botline = s:initline
   
@@ -223,11 +268,18 @@ fu! Format()
     let s:botline += 1
   endwhile
 
-  return s:topline . "," . s:botline . "!fmt"
+  let s:topline +=1
+  let s:botline -=1
+
+  let s:lines = s:botline - s:topline - 1
+  exe "let currentend = g:" . g:current . ".ends"
+
+  " let s:rtn = "\<Esc>:" . s:topline . "," . s:botline . "!fmt -" . currentend . "\<CR>:call ResetCursor(" . s:initline . "," . s:initcol . ")\<CR>i"
+  let s:rtn = "\<Esc>gw}a"
+  return s:rtn
 endfu
 
-let g:autoformat = "\<Esc>:call\<Space>Format()\<CR>a"
-" let g:autoformat = "\<Esc>gb}a"
+  let g:autoformat = "<C-R>=Format()<CR>"
 
 " Definition of Accepted Screenplay Characters
 let g:screenchars = '[A-Za-z_0-9\?\!\.\-]'
@@ -445,7 +497,7 @@ fu! Element(element)
   call ToggleCase(a:element.case)
 
   " Page Number
-  let pageInt = (line(".") / 56) + 1
+  let pageInt = (line(".") / 52) + 1
   let g:page = "PAGE " . pageInt
   
   let g:statustxt = toupper(g:current)
@@ -591,13 +643,19 @@ fu! BackspacePressed()
       else
         let s:trail = ""
       endif
-      let s:rtn = repeat("\<BS>", backspaces) . s:trail . g:autoformat
+      let s:rtn = repeat("\<BS>", backspaces) . s:trail . "\<Esc>gw}a"
   
     endif
   elseif g:current == "transition"
     let s:rtn = "\<BS>\<Esc>:s/^/ /\<CR>:let @/ =\"\"\<CR>A\<Left>"
   endif
 
+"  if g:current == "action" || g:current == "scene"
+"    let format = "call Format()"
+"  else
+"    let format = ""
+"  endif
+  
   return s:rtn
 endfu
 
@@ -731,14 +789,9 @@ fu! Start()
   let g:current = "action"
 
   if line("$") == 1 && indent(".") == 0
-    " call Element(g:action)
-    " let s:rtn = "i" . repeat(" ", 10)
-    let s:rtn = "I\<C-R>=BackspacePressed()\<CR>"
-  else
-    let s:rtn = ""
+    call Element(g:action)
+   exe "normal :s/^/           /g\<CR>:\<BS>"
   endif
-
-  return s:rtn
 endfu
 
 "  let s:lastline = line(".")
